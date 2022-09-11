@@ -169,6 +169,7 @@ class Program {
       "+faststart",
       "-pix_fmt",
       "yuv420p",
+      "-hide_banner",
       output,
     ]);
   }
