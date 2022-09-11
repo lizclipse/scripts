@@ -1,17 +1,14 @@
 import { parse } from "https://deno.land/std@0.155.0/flags/mod.ts";
-import {
-  readAll,
-  writeAll,
-} from "https://deno.land/std@0.155.0/streams/conversion.ts";
 import { ensureDir } from "https://deno.land/std@0.155.0/fs/ensure_dir.ts";
-import { walk } from "https://deno.land/std@0.155.0/fs/walk.ts";
 import { move } from "https://deno.land/std@0.155.0/fs/move.ts";
+import { walk } from "https://deno.land/std@0.155.0/fs/walk.ts";
 import {
-  relative,
   dirname,
-  resolve,
   extname,
+  relative,
+  resolve,
 } from "https://deno.land/std@0.155.0/path/mod.ts";
+import { writeAll } from "https://deno.land/std@0.155.0/streams/conversion.ts";
 
 const ignored = new Set([".DS_Store"]);
 const stripSync = new Set([".DS_Store"]);
@@ -19,7 +16,6 @@ const stripSync = new Set([".DS_Store"]);
 class ProgramError extends Error {}
 
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 interface ProgramInit {
   ingest: string;
@@ -27,8 +23,8 @@ interface ProgramInit {
   encode: { type: "arg" | "tmp"; path: string };
   archive: string;
   debug: {
-    stdout: string;
-    stderr: string;
+    stdout?: string;
+    stderr?: string;
   };
 }
 
@@ -92,8 +88,8 @@ class Program {
       },
       archive,
       debug: {
-        stdout: debugStdout ?? (await Deno.makeTempFile({ prefix })),
-        stderr: debugStderr ?? (await Deno.makeTempFile({ prefix })),
+        stdout: debugStdout,
+        stderr: debugStderr,
       },
     };
 
@@ -105,13 +101,13 @@ class Program {
     }
   }
 
-  #ingest: string;
-  #bucket: string;
-  #encode: string;
-  #archive: string;
-  #debug: {
-    stdout: string;
-    stderr: string;
+  readonly #ingest: string;
+  readonly #bucket: string;
+  readonly #encode: string;
+  readonly #archive: string;
+  readonly #debug: {
+    readonly stdout?: string;
+    readonly stderr?: string;
   };
 
   #delete: string[] = [];
@@ -151,7 +147,7 @@ class Program {
       console.log("DONE");
     }
 
-    console.log('Syncing to S3');
+    console.log("Syncing to S3");
     await this.#sync();
   }
 
@@ -178,7 +174,7 @@ class Program {
   }
 
   async #sync() {
-    for await(const entry of walk(this.#encode)) {
+    for await (const entry of walk(this.#encode)) {
       if (entry.isFile && stripSync.has(entry.name)) {
         await Deno.remove(entry.path);
       }
@@ -211,29 +207,36 @@ class Program {
   async #runSilent(cmd: string[]) {
     const p = Deno.run({ cmd, stdout: "piped", stderr: "piped" });
     try {
+      const streams = [];
+
+      if (this.#debug.stdout) {
+        streams.push(this.#streamOutput(p.stdout.readable, this.#debug.stdout));
+      }
+
+      if (this.#debug.stderr) {
+        streams.push(this.#streamOutput(p.stderr.readable, this.#debug.stderr));
+      }
+
       const { success } = await p.status();
 
-      if (!success) {
-        await Promise.all([
-          readAll(p.stdout).then((stdout) =>
-            Deno.writeTextFile(this.#debug.stdout, decoder.decode(stdout))
-          ),
-          readAll(p.stderr).then((stderr) =>
-            Deno.writeTextFile(this.#debug.stderr, decoder.decode(stderr))
-          ),
-        ]);
+      if (streams.length > 0) {
+        await Promise.all(streams);
+      }
 
-        console.log();
-        console.log(
-          "Dumped stdout to",
-          this.#debug.stdout,
-          "and stderr to",
-          this.#debug.stderr
-        );
+      if (!success) {
         throw new ProgramError(`Failed to run command ${JSON.stringify(cmd)}`);
       }
     } finally {
       p.close();
+    }
+  }
+
+  async #streamOutput(input: ReadableStream<Uint8Array>, output: string) {
+    const f = await Deno.open(output);
+    try {
+      await input.pipeTo(f.writable);
+    } finally {
+      f.close();
     }
   }
 }
