@@ -242,7 +242,11 @@ class Program {
     try {
       await input.pipeTo(f.writable);
     } finally {
-      f.close();
+      try {
+        f.close();
+      } catch {
+        // Nothing to do.
+      }
     }
   }
 }
