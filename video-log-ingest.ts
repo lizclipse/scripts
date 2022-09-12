@@ -163,6 +163,7 @@ class Program {
       "ffmpeg",
       "-i",
       input,
+      "-y",
       "-crf",
       "23",
       "-movflags",
@@ -233,7 +234,11 @@ class Program {
   }
 
   async #streamOutput(input: ReadableStream<Uint8Array>, output: string) {
-    const f = await Deno.open(output);
+    const f = await Deno.open(output, {
+      write: true,
+      create: true,
+      truncate: true,
+    });
     try {
       await input.pipeTo(f.writable);
     } finally {
