@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time</title>
+    <style>
+      .container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      #time {
+        background-color: rgba(0, 0, 0, 0.6);
+        border-radius: 5px;
+        color: lightgrey;
+        font-size: 30px;
+        font-family: monospace;
+        padding: 5px;
+        margin: 0;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <p id="time"></p>
+    </div>
+
+    <script>
+      "use strict";
+      const el = document.getElementById("time");
+
+      function update() {
+        const now = new Date().toISOString().replace(/T|Z/g, ' ');
+        el.innerText = `${now} UTC`;
+        requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    </script>
+  </body>
+</html>
