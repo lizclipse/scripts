@@ -35,9 +35,36 @@
       "use strict";
       const el = document.getElementById("time");
 
+      function fmt(value, pad = 2) {
+        return String(value).padStart(pad, "0");
+      }
+
       function update() {
-        const now = new Date().toISOString().replace(/T|Z/g, ' ');
-        el.innerText = `${now} UTC`;
+        const now = new Date();
+        const tz = now.getTimezoneOffset();
+        const tzprefix = tz >= 0 ? "-" : "+"; // tx offset is opposite to formatted offset
+
+        const date = [
+          now.getFullYear(),
+          "-",
+          fmt(now.getMonth()),
+          "-",
+          fmt(now.getDate()),
+          " ",
+          fmt(now.getHours()),
+          ":",
+          fmt(now.getHours()),
+          ":",
+          fmt(now.getSeconds()),
+          ".",
+          fmt(now.getMilliseconds(), 3),
+          " ",
+          "GMT",
+          tzprefix,
+          Math.abs(tz / 60),
+        ].join("");
+
+        el.innerText = date;
         requestAnimationFrame(update);
       }
 
