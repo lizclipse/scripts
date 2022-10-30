@@ -42,7 +42,7 @@
       function update() {
         const now = new Date();
         const tz = now.getTimezoneOffset();
-        const tzprefix = tz >= 0 ? "-" : "+"; // tx offset is opposite to formatted offset
+        const tzprefix = tz > 0 ? "-" : "+"; // tx offset is opposite to formatted offset
 
         const date = [
           now.getFullYear(),
@@ -59,7 +59,7 @@
           ".",
           fmt(now.getMilliseconds(), 3),
           " ",
-          "GMT",
+          "UTC",
           tzprefix,
           Math.abs(tz / 60),
         ].join("");
